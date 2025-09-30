@@ -1,9 +1,15 @@
-#!/usr/bin/env python3
+import pytest
+from app import create_app
+from models import db, User, Recipe  # import models so tables register
 
-def pytest_itemcollected(item):
-    par = item.parent.obj
-    node = item.obj
-    pref = par.__doc__.strip() if par.__doc__ else par.__class__.__name__
-    suf = node.__doc__.strip() if node.__doc__ else node.__name__
-    if pref or suf:
-        item._nodeid = ' '.join((pref, suf))
+@pytest.fixture(scope="module")
+def test_app():
+    app = create_app()
+    app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///:memory:"
+    app.config["TESTING"] = True
+
+    with app.app_context():
+        db.create_all()     # now tables for User + Recipe are created
+        yield app
+        db.session.remove()
+        db.drop_all()
